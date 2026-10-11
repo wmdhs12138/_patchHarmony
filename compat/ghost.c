@@ -22,6 +22,9 @@
 #include "type_info.h"
 #include <linux/btf.h>
 
+/* 6.18 builds with -Wmissing-prototypes */
+__nocfi noinline struct task_struct *dlc_ftbv_wrap(pid_t vnr);
+
 #define DLC_GHOST_TASK_COMM	"ghost-task-sentinel"
 #define DLC_GHOST_LOG_MAX	3
 

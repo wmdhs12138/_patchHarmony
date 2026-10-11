@@ -40,7 +40,9 @@
  */
 static inline refcount_t *droid_lkm_ipcns_refcount(struct ipc_namespace *ns)
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 18, 0)
+	return &ns->ns.__ns_ref;
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0)
 	return &ns->ns.count;
 #else
 	return &ns->count;
@@ -169,7 +171,7 @@ out_kernel_ns:
 	if (err)
 		goto out_free;
 
-	ns->ns.ops = &droid_lkm_ipcns_ops;
+	droid_lkm_ns_set_ops(&ns->ns, &droid_lkm_ipcns_ops, CLONE_NEWIPC);
 	refcount_set(droid_lkm_ipcns_refcount(ns), 1);
 	/* same ownership rule as the fake pid namespace, see droid_lkm_pidns_create */
 	ns->user_ns = current_cred()->user_ns;
@@ -330,7 +332,9 @@ static struct user_namespace *droid_lkm_ipcns_owner(struct ns_common *ns)
 
 const struct proc_ns_operations droid_lkm_ipcns_ops = {
 	.name = "ipc",
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 18, 0)
 	.type = CLONE_NEWIPC,
+#endif
 	.get = droid_lkm_ipcns_get_task,
 	.put = droid_lkm_ipcns_put_common,
 	.install = droid_lkm_ipcns_install,
@@ -433,7 +437,8 @@ int droid_lkm_ipcns_init(void)
 	
 	droid_lkm_ipcns_host->ns.inum = PROC_IPC_INIT_INO;
 	
-	droid_lkm_ipcns_host->ns.ops = &droid_lkm_ipcns_ops;
+	droid_lkm_ns_set_ops(&droid_lkm_ipcns_host->ns, &droid_lkm_ipcns_ops,
+			     CLONE_NEWIPC);
 	refcount_set(droid_lkm_ipcns_refcount(droid_lkm_ipcns_host), 1);
 	droid_lkm_ipcns_host->user_ns = &init_user_ns;
 

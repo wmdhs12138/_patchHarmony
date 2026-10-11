@@ -4,6 +4,7 @@
  */
 
 #include <linux/module.h>
+#include <linux/moduleparam.h>
 #include <linux/fs.h>
 #include <linux/dcache.h>
 #include <linux/namei.h>
@@ -16,10 +17,11 @@
 #include <linux/slab.h>
 #include <linux/string.h>
 
-MODULE_IMPORT_NS(VFS_internal_I_am_really_a_filesystem_and_am_NOT_a_driver);
 
 #include "hk_patch.h"
 #include "ds.h"
+
+DROID_LKM_IMPORT_NS(VFS_internal_I_am_really_a_filesystem_and_am_NOT_a_driver);
 #include "ds_ipcns.h"
 #include "ds_pidns.h"
 #include "ds_proc.h"

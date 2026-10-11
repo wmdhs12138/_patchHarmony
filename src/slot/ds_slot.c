@@ -31,6 +31,13 @@
 #include "hk_patch.h"
 #include "hk_inline.h"
 
+/* 6.18 builds with -Wmissing-prototypes */
+struct droid_lkm_clone_ctx;
+__nocfi noinline int droid_lkm_clone_ctx_enter(unsigned long flags, struct droid_lkm_clone_ctx *ctx);
+__nocfi noinline void droid_lkm_clone_ctx_leave(struct droid_lkm_clone_ctx *ctx);
+__nocfi noinline struct nsproxy *droid_lkm_cnn_wrap(unsigned long flags, struct task_struct *tsk, struct user_namespace *user_ns, struct fs_struct *fs);
+__nocfi noinline int droid_lkm_cn_wrap(unsigned long flags, struct task_struct *tsk);
+
 typedef long (*droid_lkm_syscall_fn)(const struct pt_regs *regs);
 
 asmlinkage long __arm64_sys_mq_open(const struct pt_regs *regs);
@@ -325,6 +332,7 @@ static int droid_lkm_ipc_attach(unsigned long *tab, int nr, unsigned long fn,
 		return -EIO;
 	}
 	*orig = (droid_lkm_syscall_fn)was;
+
 	droid_lkm_dbg("ipc slot %d (%s) 0x%lx[%s] -> ours\n", nr, name, cur,
 		      sym);
 	return 0;

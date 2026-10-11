@@ -166,7 +166,7 @@ __nocfi noinline struct pid_namespace *droid_lkm_pidns_create(struct pid_namespa
 	if (err)
 		goto out_idr;
 
-	ns->ns.ops = &droid_lkm_pidns_ops;
+	droid_lkm_ns_set_ops(&ns->ns, &droid_lkm_pidns_ops, CLONE_NEWPID);
 	refcount_set(droid_lkm_pidns_refcount(ns), 1);
 	ns->level = level;
 	ns->parent = parent;
@@ -456,7 +456,9 @@ static struct user_namespace *droid_lkm_pidns_owner(struct ns_common *ns)
 
 const struct proc_ns_operations droid_lkm_pidns_ops = {
 	.name = "pid",
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 18, 0)
 	.type = CLONE_NEWPID,
+#endif
 	.get = droid_lkm_pidns_get_active,
 	.put = droid_lkm_pidns_put_common,
 	.install = droid_lkm_pidns_install,
@@ -467,7 +469,9 @@ const struct proc_ns_operations droid_lkm_pidns_ops = {
 const struct proc_ns_operations droid_lkm_pidns_for_children_ops = {
 	.name = "pid_for_children",
 	.real_ns_name = "pid",
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 18, 0)
 	.type = CLONE_NEWPID,
+#endif
 	.get = droid_lkm_pidns_get_for_children,
 	.put = droid_lkm_pidns_put_common,
 	.install = droid_lkm_pidns_install,

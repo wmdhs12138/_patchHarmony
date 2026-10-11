@@ -640,7 +640,11 @@ static int shm_mmap(struct file *file, struct vm_area_struct *vma)
 	if (ret)
 		return ret;
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 18, 0)
+	ret = vfs_mmap(sfd->file, vma);
+#else
 	ret = call_mmap(sfd->file, vma);
+#endif
 	if (ret) {
 		__shm_close(sfd);
 		return ret;

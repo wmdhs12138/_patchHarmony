@@ -23,6 +23,7 @@ struct vma_iterator;
 #include <linux/percpu_counter.h>
 #include <linux/mm.h>
 #include <linux/fs.h>
+#include <linux/uidgid.h>
 
 struct nsproxy;
 struct task_struct;
@@ -47,6 +48,8 @@ struct ipc_ids;
 struct inode;
 struct dentry;
 struct dentry_operations;
+struct list_lru;
+struct kmem_cache;
 struct rw_semaphore;
 struct kprobe;
 struct proc_ns_operations;
@@ -234,6 +237,25 @@ struct droid_lkm_ksym {
 	struct ipc_namespace *(*copy_ipcs)(unsigned long flags,
 					   struct user_namespace *user_ns,
 					   struct ipc_namespace *ns);
+
+	/*
+	 * VFS and ipc helpers 6.18 keeps in a namespace and trims out of the
+	 * plain export table. the module defines each kernel name itself, so the
+	 * link never asks the loader for one, and the call goes through this
+	 * table: a NULL entry degrades the one feature that needs it
+	 */
+	struct dentry *(*d_splice_alias)(struct inode *inode,
+					 struct dentry *dentry);
+	int (*in_group_p)(kgid_t grp);
+	void (*ihold)(struct inode *inode);
+	void (*inc_nlink)(struct inode *inode);
+	void (*drop_nlink)(struct inode *inode);
+	void (*clear_inode)(struct inode *inode);
+	void (*d_instantiate)(struct dentry *dentry, struct inode *inode);
+	void (*inode_init_once)(struct inode *inode);
+	/* protected on 6.18 instead of trimmed, and it answers the stamp it set */
+	struct timespec64 (*simple_inode_init_ts)(struct inode *inode);
+	int *overflowgid_addr;
 
 	/*
 	 * the hook engine patches text through the fixmap and resolves these
