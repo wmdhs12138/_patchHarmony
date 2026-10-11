@@ -39,6 +39,18 @@
 #else
 #define TOY_FD_FILE(_f)	((_f).file)
 #endif
+
+/* 5.10 的 sock_from_file 带 err 出参 */
+static inline struct socket *toy_sock_from_file(struct file *f)
+{
+	int err = 0;
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0)
+	return sock_from_file(f);
+#else
+	return sock_from_file(f, &err);
+#endif
+}
 #define TOY_NR_OPENAT		56
 
 /*
@@ -205,7 +217,7 @@ static bool toy_is_raw_socket(int fd)
 	bool raw = false;
 
 	if (TOY_FD_FILE(f)) {
-		struct socket *sock = sock_from_file(TOY_FD_FILE(f));
+		struct socket *sock = toy_sock_from_file(TOY_FD_FILE(f));
 
 		if (sock && sock->type == SOCK_RAW)
 			raw = true;
