@@ -6,6 +6,7 @@ on:
       - 'src/**'
       - 'compat/**'
       - 'Makefile'
+      - 'vivo_loader_probe.c'
       - 'mk/**'
       - 'deps.lst'
       - 'scripts/**'
@@ -62,12 +63,41 @@ jobs:
             echo 'Even if the build is green, DO NOT insmod without ABI and hook safety validation.'
           } >> "$GITHUB_STEP_SUMMARY"
 
+      - name: Minimal loader probe metadata
+        env:
+          KMI: ${{ matrix.kmi }}
+        run: |
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          from scripts.vivo_abi_preflight import inspect
+
+          path = Path("out") / os.environ["KMI"] / "vivo_loader_probe.ko"
+          meta, versions, imports = inspect(path)
+          if meta["module_name"] != "vivo_loader_probe":
+              raise SystemExit("Unexpected probe module identity")
+          report = {
+              "path": str(path),
+              "module": meta,
+              "imports": sorted(imports),
+              "embedded_crcs": versions,
+              "verdict": "BUILD_ONLY_NOT_VERIFIED_FOR_V2338A",
+              "storage_writes": "none in probe source",
+              "note": "Loader still validates vermagic, CRC and GKI protection before module init"
+          }
+          print(json.dumps(report, indent=2))
+          (path.parent / "vivo_loader_probe_report.json").write_text(
+              json.dumps(report, indent=2) + "\n")
+          PY
+
       - uses: actions/upload-artifact@v4
         with:
           name: droid_lkm-${{ matrix.kmi }}-BUILD_ONLY
           path: |
             out/${{ matrix.kmi }}/droid_lkm.ko
             out/${{ matrix.kmi }}/droid_lkm_compat.ko
+            out/${{ matrix.kmi }}/vivo_loader_probe.ko
+            out/${{ matrix.kmi }}/vivo_loader_probe_report.json
             out/${{ matrix.kmi }}/vivo_abi_report.json
             out/${{ matrix.kmi }}/vivo_abi_report.txt
           if-no-files-found: warn
