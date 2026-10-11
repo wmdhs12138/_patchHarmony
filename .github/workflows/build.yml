@@ -17,12 +17,7 @@ jobs:
     strategy:
       matrix:
         kmi:
-          - android13-5.10
           - android13-5.15
-          - android14-5.15
-          - android14-6.1
-          - android15-6.6
-          - android16-6.12
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/ylarod/ddk-min:${{ matrix.kmi }}-20260313
@@ -32,10 +27,12 @@ jobs:
 
       - name: Fetch deps
         env:
-          KMSDK_TOKEN: ${{ secrets.KMSDK_TOKEN }}
+          HOO_FORK_URL: https://github.com/wmdhs12138/HooKern.git
         run: |
-          git config --global url."https://x-access-token:${KMSDK_TOKEN}@github.com/".insteadOf "git@github.com:"
           scripts/fetch-deps.sh
+          echo "HooKern commit:"
+          git -C deps/HooKern rev-parse HEAD
+          grep -F 'ptep = h->guard[i].ptep;' deps/HooKern/lib/hk_inline.c
 
       - name: Build ${{ matrix.kmi }}
         run: |

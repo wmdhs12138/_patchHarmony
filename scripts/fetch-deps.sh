@@ -10,7 +10,7 @@ SDKREV=$(cat .sdk-version)
 
 if [ ! -d .sdk/.git ]; then
 	rm -rf .sdk
-	git clone git@github.com:Dere3046/KMSDK.git .sdk
+	git clone https://github.com/Dere3046/KMSDK.git .sdk
 fi
 
 case $SDKREV in
@@ -24,5 +24,32 @@ case $SDKREV in
 	git -C .sdk checkout -q FETCH_HEAD
 	;;
 esac
+
+# 使用自己的 HooKern Fork
+if [ -n "${HOO_FORK_URL:-}" ]; then
+    HOO_REV=$(awk '$1=="HooKern" {print $2; exit}' deps.lst)
+    [ -n "$HOO_REV" ] || {
+        echo "ERROR: HooKern revision missing"
+        exit 1
+    }
+
+    mkdir -p deps
+
+    if [ ! -d deps/HooKern/.git ]; then
+        git clone "$HOO_FORK_URL" deps/HooKern
+    fi
+
+    ACTUAL_URL=$(git -C deps/HooKern remote get-url origin)
+    [ "$ACTUAL_URL" = "$HOO_FORK_URL" ] || {
+        echo "ERROR: wrong HooKern remote: $ACTUAL_URL"
+        exit 1
+    }
+
+    git -C deps/HooKern fetch origin
+    git -C deps/HooKern checkout --detach "$HOO_REV"
+
+    echo "HooKern revision:"
+    git -C deps/HooKern rev-parse HEAD
+fi
 
 exec .sdk/scripts/sdk install
