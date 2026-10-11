@@ -27,6 +27,21 @@ bool droid_lkm_verbose;
 module_param_named(verbose, droid_lkm_verbose, bool, 0444);
 MODULE_PARM_DESC(verbose, "log every hook entry (on-device crash bisect)");
 
+/*
+ * Vivo experimental load staging:
+ *   0 = normal behavior (full hooks, unchanged);
+ *   1 = enter module init, log and return without resolving kallsyms or hooks;
+ *   2 = inspect kallsyms, helper addresses and running BTF only; no
+ *       namespace creation, syscall patching, hook engine or proc setup.
+ *
+ * This is RAM-only kernel experimentation, NOT a filesystem safety guarantee.
+ */
+static unsigned int droid_lkm_diag_stage;
+module_param_named(diag_stage, droid_lkm_diag_stage, uint, 0444);
+MODULE_PARM_DESC(diag_stage,
+                 "0=normal, 1=loader-only, 2=read-only symbol/BTF diagnosis");
+
+
 static bool droid_lkm_mqueue_fs_up;
 
 static const char *const droid_lkm_probe_syms[] = {
@@ -97,6 +112,16 @@ static int __init droid_lkm_init(void)
 {
 	int ret;
 
+	if (droid_lkm_diag_stage > 2) {
+		droid_lkm_err("diag_stage=%u invalid; use 0, 1 or 2\n",
+			       droid_lkm_diag_stage);
+		return -EINVAL;
+	}
+	if (droid_lkm_diag_stage == 1) {
+		droid_lkm_info("diag_stage=1: loader-only; no kernel symbol lookup or hooks\n");
+		return 0;
+	}
+
 	find_kallsyms_base();
 	if (!klnum_val || !kallrecon_klp) {
 		droid_lkm_err("kallsyms recovery failed\n");
@@ -114,6 +139,12 @@ static int __init droid_lkm_init(void)
 		return ret;
 
 	droid_lkm_layout_init();
+
+	if (droid_lkm_diag_stage == 2) {
+		droid_lkm_layout_report();
+		droid_lkm_info("diag_stage=2: symbol/BTF diagnosis done; no hooks installed\n");
+		return 0;
+	}
 
 	ret = droid_lkm_caps_init();
 	if (ret)
@@ -197,7 +228,12 @@ err_hk:
 
 static void __exit droid_lkm_exit(void)
 {
-
+	if (droid_lkm_diag_stage) {
+		/* Stage 1 and 2 own no hooks, namespaces or registered fs/proc state. */
+		droid_lkm_info("diag_stage=%u: unloaded without full teardown\n",
+			       droid_lkm_diag_stage);
+		return;
+	}
 
 	if (droid_lkm_pidns_busy() || droid_lkm_ipcns_busy())
 		droid_lkm_warn("live container state at unload; those objects will be leaked\n");
