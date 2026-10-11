@@ -32,6 +32,13 @@
 #define TOY_NR_FACCESSAT	48
 #define TOY_NR_FACCESSAT2	439
 #define TOY_NR_GETSOCKOPT	209
+
+/* 6.11 起 struct fd 要用 fd_file() 取, 之前直接取成员 */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 11, 0)
+#define TOY_FD_FILE(_f)	fd_file(_f)
+#else
+#define TOY_FD_FILE(_f)	((_f).file)
+#endif
 #define TOY_NR_OPENAT		56
 
 /*
@@ -193,17 +200,17 @@ static struct file_system_type toy_devtmpfs_type = {
 /* 只有 raw socket 才会被答: 普通 socket 的 IPV6_* 选项一概放行 */
 static bool toy_is_raw_socket(int fd)
 {
-	/* fget/fput 全版本同形: 6.11 起才有 fd_file() */
-	struct file *f = fget(fd);
+	/* 5.10 的 fget 是两参数, 所以统一用 fdget + 形状开关取 file */
+	struct fd f = fdget(fd);
 	bool raw = false;
 
-	if (f) {
-		struct socket *sock = sock_from_file(f);
+	if (TOY_FD_FILE(f)) {
+		struct socket *sock = sock_from_file(TOY_FD_FILE(f));
 
 		if (sock && sock->type == SOCK_RAW)
 			raw = true;
-		fput(f);
 	}
+	fdput(f);
 	return raw;
 }
 
