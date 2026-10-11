@@ -26,6 +26,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Validate ABI helper scripts
+        run: python3 -m py_compile scripts/vivo_abi_preflight.py scripts/vivo_probe_inputs.py
+
       - name: Fetch deps
         env:
           HOO_FORK_URL: https://github.com/wmdhs12138/HooKern.git
