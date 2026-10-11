@@ -43,11 +43,11 @@
 /* 5.10 的 sock_from_file 带 err 出参 */
 static inline struct socket *toy_sock_from_file(struct file *f)
 {
-	int err = 0;
-
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0)
 	return sock_from_file(f);
 #else
+	int err = 0;
+
 	return sock_from_file(f, &err);
 #endif
 }
