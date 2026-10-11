@@ -8,7 +8,7 @@ on:
       - 'Makefile'
       - 'mk/**'
       - 'deps.lst'
-      - 'scripts/fetch-deps.sh'
+      - 'scripts/**'
       - '.github/workflows/build.yml'
   workflow_dispatch:
 
@@ -46,10 +46,28 @@ jobs:
             exit 1
           fi
 
+      # Compile success and ABI compatibility are separate things.
+      # This report is informational: a passing CI job never certifies safe loading.
+      - name: V2338A read-only ABI preflight
+        run: |
+          python3 scripts/vivo_abi_preflight.py \
+            out/${{ matrix.kmi }}/droid_lkm.ko \
+            --json out/${{ matrix.kmi }}/vivo_abi_report.json \
+            | tee out/${{ matrix.kmi }}/vivo_abi_report.txt
+          {
+            echo '### V2338A ABI preflight (not a load certification)'
+            echo '```text'
+            cat out/${{ matrix.kmi }}/vivo_abi_report.txt
+            echo '```'
+            echo 'Even if the build is green, DO NOT insmod without ABI and hook safety validation.'
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - uses: actions/upload-artifact@v4
         with:
-          name: droid_lkm-${{ matrix.kmi }}
+          name: droid_lkm-${{ matrix.kmi }}-BUILD_ONLY
           path: |
             out/${{ matrix.kmi }}/droid_lkm.ko
             out/${{ matrix.kmi }}/droid_lkm_compat.ko
+            out/${{ matrix.kmi }}/vivo_abi_report.json
+            out/${{ matrix.kmi }}/vivo_abi_report.txt
           if-no-files-found: warn
