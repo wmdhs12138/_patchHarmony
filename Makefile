@@ -1,5 +1,9 @@
 obj-m := droid_lkm.o
 
+# Independent module-loader test (no HooKern, no namespace or syscall code).
+# Built separately so loader issues can be isolated from 198 DroidLKM imports.
+obj-m += vivo_loader_probe.o
+
 KDIR := $(KDIR)
 MDIR := $(realpath $(dir $(abspath $(lastword $(MAKEFILE_LIST)))))
 # a missing VER must not point at out/ itself
